@@ -5,15 +5,14 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-@TableName("sys_permission")
-public class Permission {
+@TableName("sys_menu")
+public class Menu {
   private Long id;
-  private String code;
+  private Long parentId;
+  private String menuKey;
   private String name;
-  private String description;
-  private Long menuId;
-  private String resource;
-  private String action;
+  private String path;
+  private Integer sortOrder;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
 }

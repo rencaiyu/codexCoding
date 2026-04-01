@@ -6,6 +6,7 @@ import com.example.auth.entity.RolePermission;
 import com.example.auth.service.RolePermissionService;
 import com.example.auth.service.RoleService;
 import jakarta.validation.Valid;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,9 +55,23 @@ public class RoleController {
     roleService.removeById(id);
   }
 
+  @GetMapping("/{id}/permissions")
+  public List<Long> rolePermissions(@PathVariable Long id) {
+    List<RolePermission> mappings = rolePermissionService.lambdaQuery()
+        .eq(RolePermission::getRoleId, id)
+        .list();
+    if (mappings.isEmpty()) {
+      return Collections.emptyList();
+    }
+    return mappings.stream().map(RolePermission::getPermissionId).toList();
+  }
+
   @PostMapping("/assign-permissions")
   public void assignPermissions(@Valid @RequestBody PermissionAssignmentRequest request) {
     rolePermissionService.remove(new QueryWrapper<RolePermission>().eq("role_id", request.roleId()));
+    if (request.permissionIds() == null || request.permissionIds().isEmpty()) {
+      return;
+    }
     List<RolePermission> mappings = request.permissionIds().stream()
         .map(permissionId -> {
           RolePermission mapping = new RolePermission();

@@ -1,5 +1,5 @@
 import { Button, Layout, Menu, Space, Typography, message } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import UsersPage from "./pages/UsersPage.jsx";
 import RolesPage from "./pages/RolesPage.jsx";
 import PermissionsPage from "./pages/PermissionsPage.jsx";
@@ -11,25 +11,15 @@ const { Header, Content, Sider } = Layout;
 const menuItems = [
   { key: "users", label: "用户管理" },
   { key: "roles", label: "角色管理" },
-  { key: "permissions", label: "权限管理" }
+  { key: "permissions", label: "菜单与按钮权限" }
 ];
-
-const renderContent = (activeKey) => {
-  switch (activeKey) {
-    case "roles":
-      return <RolesPage />;
-    case "permissions":
-      return <PermissionsPage />;
-    default:
-      return <UsersPage />;
-  }
-};
 
 export default function App() {
   const [activeKey, setActiveKey] = useState("users");
   const [authenticated, setAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [allowedMenus, setAllowedMenus] = useState(menuItems.map((item) => item.key));
+  const [permissionSet, setPermissionSet] = useState(new Set());
   const [checking, setChecking] = useState(true);
 
   const fetchAllowedMenus = async () => {
@@ -49,6 +39,15 @@ export default function App() {
     }
   };
 
+  const fetchPermissions = async () => {
+    try {
+      const response = await client.get("/auth/permissions");
+      setPermissionSet(new Set(response.data?.permissions ?? []));
+    } catch {
+      setPermissionSet(new Set());
+    }
+  };
+
   useEffect(() => {
     const checkToken = async () => {
       const token = localStorage.getItem("auth_token");
@@ -59,7 +58,7 @@ export default function App() {
       try {
         await client.get("/auth/validate");
         setAuthenticated(true);
-        await fetchAllowedMenus();
+        await Promise.all([fetchAllowedMenus(), fetchPermissions()]);
       } catch {
         setAuthToken(null);
       } finally {
@@ -73,10 +72,24 @@ export default function App() {
     setAuthToken(null);
     setAuthenticated(false);
     setUserInfo(null);
+    setPermissionSet(new Set());
     setAllowedMenus(menuItems.map((item) => item.key));
     setActiveKey("users");
     message.success("已退出登录");
   };
+
+  const hasPermission = (permissionKey) => permissionSet.has(permissionKey);
+
+  const content = useMemo(() => {
+    switch (activeKey) {
+      case "roles":
+        return <RolesPage hasPermission={hasPermission} />;
+      case "permissions":
+        return <PermissionsPage hasPermission={hasPermission} />;
+      default:
+        return <UsersPage hasPermission={hasPermission} />;
+    }
+  }, [activeKey, permissionSet]);
 
   if (checking) {
     return null;
@@ -85,10 +98,10 @@ export default function App() {
   if (!authenticated) {
     return (
       <LoginPage
-        onLogin={(payload) => {
+        onLogin={async (payload) => {
           setAuthenticated(true);
           setUserInfo(payload);
-          fetchAllowedMenus();
+          await Promise.all([fetchAllowedMenus(), fetchPermissions()]);
         }}
       />
     );
@@ -100,7 +113,7 @@ export default function App() {
     <Layout style={{ minHeight: "100vh" }}>
       <Sider breakpoint="lg" collapsedWidth="0">
         <div style={{ color: "#fff", padding: 16, fontWeight: 600 }}>
-          权限管理系统
+          后台管理系统
         </div>
         <Menu
           theme="dark"
@@ -121,7 +134,7 @@ export default function App() {
           </Space>
         </Header>
         <Content style={{ margin: 24, background: "#fff", padding: 24 }}>
-          {renderContent(activeKey)}
+          {content}
         </Content>
       </Layout>
     </Layout>

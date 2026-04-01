@@ -2,7 +2,9 @@ package com.example.auth.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.auth.entity.Role;
+import com.example.auth.entity.RoleMenu;
 import com.example.auth.entity.RolePermission;
+import com.example.auth.service.RoleMenuService;
 import com.example.auth.service.RolePermissionService;
 import com.example.auth.service.RoleService;
 import jakarta.validation.Valid;
@@ -21,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoleController {
   private final RoleService roleService;
   private final RolePermissionService rolePermissionService;
+  private final RoleMenuService roleMenuService;
 
-  public RoleController(RoleService roleService, RolePermissionService rolePermissionService) {
+  public RoleController(RoleService roleService, RolePermissionService rolePermissionService, RoleMenuService roleMenuService) {
     this.roleService = roleService;
     this.rolePermissionService = rolePermissionService;
+    this.roleMenuService = roleMenuService;
   }
 
   @GetMapping
@@ -57,32 +61,45 @@ public class RoleController {
 
   @GetMapping("/{id}/permissions")
   public List<Long> rolePermissions(@PathVariable Long id) {
-    List<RolePermission> mappings = rolePermissionService.lambdaQuery()
-        .eq(RolePermission::getRoleId, id)
-        .list();
-    if (mappings.isEmpty()) {
-      return Collections.emptyList();
-    }
+    List<RolePermission> mappings = rolePermissionService.lambdaQuery().eq(RolePermission::getRoleId, id).list();
+    if (mappings.isEmpty()) return Collections.emptyList();
     return mappings.stream().map(RolePermission::getPermissionId).toList();
+  }
+
+  @GetMapping("/{id}/menus")
+  public List<Long> roleMenus(@PathVariable Long id) {
+    List<RoleMenu> mappings = roleMenuService.lambdaQuery().eq(RoleMenu::getRoleId, id).list();
+    if (mappings.isEmpty()) return Collections.emptyList();
+    return mappings.stream().map(RoleMenu::getMenuId).toList();
   }
 
   @PostMapping("/assign-permissions")
   public void assignPermissions(@Valid @RequestBody PermissionAssignmentRequest request) {
     rolePermissionService.remove(new QueryWrapper<RolePermission>().eq("role_id", request.roleId()));
-    if (request.permissionIds() == null || request.permissionIds().isEmpty()) {
-      return;
-    }
-    List<RolePermission> mappings = request.permissionIds().stream()
-        .map(permissionId -> {
-          RolePermission mapping = new RolePermission();
-          mapping.setRoleId(request.roleId());
-          mapping.setPermissionId(permissionId);
-          return mapping;
-        })
-        .toList();
+    if (request.permissionIds() == null || request.permissionIds().isEmpty()) return;
+    List<RolePermission> mappings = request.permissionIds().stream().map(permissionId -> {
+      RolePermission mapping = new RolePermission();
+      mapping.setRoleId(request.roleId());
+      mapping.setPermissionId(permissionId);
+      return mapping;
+    }).toList();
     rolePermissionService.saveBatch(mappings);
   }
 
-  public record PermissionAssignmentRequest(Long roleId, List<Long> permissionIds) {
+  @PostMapping("/assign-menus")
+  public void assignMenus(@Valid @RequestBody MenuAssignmentRequest request) {
+    roleMenuService.remove(new QueryWrapper<RoleMenu>().eq("role_id", request.roleId()));
+    if (request.menuIds() == null || request.menuIds().isEmpty()) return;
+    List<RoleMenu> mappings = request.menuIds().stream().map(menuId -> {
+      RoleMenu mapping = new RoleMenu();
+      mapping.setRoleId(request.roleId());
+      mapping.setMenuId(menuId);
+      return mapping;
+    }).toList();
+    roleMenuService.saveBatch(mappings);
   }
+
+  public record PermissionAssignmentRequest(Long roleId, List<Long> permissionIds) {}
+
+  public record MenuAssignmentRequest(Long roleId, List<Long> menuIds) {}
 }

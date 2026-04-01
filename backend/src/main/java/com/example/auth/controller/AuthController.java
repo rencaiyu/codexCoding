@@ -77,6 +77,20 @@ public class AuthController {
 
   @GetMapping("/menus")
   public Map<String, List<String>> menus() {
+    Set<String> permissionKeys = getCurrentUserPermissionKeys();
+    List<String> menus = List.of("users", "roles", "permissions")
+        .stream()
+        .filter(menuKey -> permissionKeys.contains(menuKey + ":view"))
+        .toList();
+    return Map.of("menus", menus);
+  }
+
+  @GetMapping("/permissions")
+  public Map<String, Set<String>> permissions() {
+    return Map.of("permissions", getCurrentUserPermissionKeys());
+  }
+
+  private Set<String> getCurrentUserPermissionKeys() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || authentication.getName() == null) {
       throw new UnauthorizedException("未登录");
@@ -88,7 +102,9 @@ public class AuthController {
     }
 
     if ("admin".equalsIgnoreCase(currentUser.getUsername())) {
-      return Map.of("menus", List.of("users", "roles", "permissions"));
+      return permissionService.list().stream()
+          .map(permission -> permission.getResource() + ":" + permission.getAction())
+          .collect(Collectors.toSet());
     }
 
     List<Long> roleIds = userRoleService.lambdaQuery()
@@ -98,7 +114,7 @@ public class AuthController {
         .map(UserRole::getRoleId)
         .toList();
     if (roleIds.isEmpty()) {
-      return Map.of("menus", List.of());
+      return Set.of();
     }
 
     Set<Long> permissionIds = rolePermissionService.lambdaQuery()
@@ -108,21 +124,14 @@ public class AuthController {
         .map(RolePermission::getPermissionId)
         .collect(Collectors.toSet());
     if (permissionIds.isEmpty()) {
-      return Map.of("menus", List.of());
+      return Set.of();
     }
 
-    Set<String> menuSet = permissionService.lambdaQuery()
+    return permissionService.lambdaQuery()
         .in(Permission::getId, permissionIds)
         .list()
         .stream()
-        .map(Permission::getResource)
-        .filter(resource -> resource != null && !resource.isBlank())
+        .map(permission -> permission.getResource() + ":" + permission.getAction())
         .collect(Collectors.toSet());
-
-    List<String> menus = List.of("users", "roles", "permissions")
-        .stream()
-        .filter(menuSet::contains)
-        .toList();
-    return Map.of("menus", menus);
   }
 }

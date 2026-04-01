@@ -6,6 +6,7 @@ import com.example.auth.entity.UserRole;
 import com.example.auth.service.UserRoleService;
 import com.example.auth.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -61,9 +62,23 @@ public class UserController {
     userService.removeById(id);
   }
 
+  @GetMapping("/{id}/roles")
+  public List<Long> userRoles(@PathVariable Long id) {
+    List<UserRole> mappings = userRoleService.lambdaQuery()
+        .eq(UserRole::getUserId, id)
+        .list();
+    if (mappings.isEmpty()) {
+      return Collections.emptyList();
+    }
+    return mappings.stream().map(UserRole::getRoleId).toList();
+  }
+
   @PostMapping("/assign-roles")
   public void assignRoles(@Valid @RequestBody RoleAssignmentRequest request) {
     userRoleService.remove(new QueryWrapper<UserRole>().eq("user_id", request.userId()));
+    if (request.roleIds() == null || request.roleIds().isEmpty()) {
+      return;
+    }
     List<UserRole> mappings = request.roleIds().stream()
         .map(roleId -> {
           UserRole mapping = new UserRole();

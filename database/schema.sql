@@ -67,6 +67,27 @@ INSERT INTO sys_permission (code, name, description, resource, action)
 SELECT 'permissions:view', '权限菜单', '访问权限管理菜单', 'permissions', 'view'
 WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'permissions:view');
 
+
+INSERT INTO sys_permission (code, name, description, resource, action)
+SELECT 'users:create', '新增用户按钮', '用户管理下新增用户按钮权限', 'users', 'create'
+WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'users:create');
+
+INSERT INTO sys_permission (code, name, description, resource, action)
+SELECT 'users:assign', '分配用户角色按钮', '用户管理下分配角色按钮权限', 'users', 'assign'
+WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'users:assign');
+
+INSERT INTO sys_permission (code, name, description, resource, action)
+SELECT 'roles:create', '新增角色按钮', '角色管理下新增角色按钮权限', 'roles', 'create'
+WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'roles:create');
+
+INSERT INTO sys_permission (code, name, description, resource, action)
+SELECT 'roles:assign', '分配角色权限按钮', '角色管理下分配权限按钮权限', 'roles', 'assign'
+WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'roles:assign');
+
+INSERT INTO sys_permission (code, name, description, resource, action)
+SELECT 'permissions:create', '新增权限按钮', '菜单与按钮权限下新增权限按钮', 'permissions', 'create'
+WHERE NOT EXISTS (SELECT 1 FROM sys_permission WHERE code = 'permissions:create');
+
 INSERT INTO sys_user (username, display_name, email, password_hash, enabled)
 SELECT 'admin', '系统管理员', 'admin@example.com', 'admin123456', 1
 WHERE NOT EXISTS (SELECT 1 FROM sys_user WHERE username = 'admin');
@@ -83,7 +104,7 @@ WHERE u.username = 'admin'
 INSERT INTO sys_role_permission (role_id, permission_id)
 SELECT r.id, p.id
 FROM sys_role r
-JOIN sys_permission p ON p.code IN ('users:view', 'roles:view', 'permissions:view')
+JOIN sys_permission p ON p.code IN ('users:view', 'roles:view', 'permissions:view', 'users:create', 'users:assign', 'roles:create', 'roles:assign', 'permissions:create')
 WHERE r.code = 'ADMIN'
   AND NOT EXISTS (
     SELECT 1 FROM sys_role_permission rp WHERE rp.role_id = r.id AND rp.permission_id = p.id

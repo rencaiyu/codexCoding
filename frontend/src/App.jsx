@@ -29,7 +29,25 @@ export default function App() {
   const [activeKey, setActiveKey] = useState("users");
   const [authenticated, setAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [allowedMenus, setAllowedMenus] = useState(menuItems.map((item) => item.key));
   const [checking, setChecking] = useState(true);
+
+  const fetchAllowedMenus = async () => {
+    try {
+      const response = await client.get("/auth/menus");
+      const menus = response.data?.menus ?? [];
+      if (menus.length > 0) {
+        setAllowedMenus(menus);
+        if (!menus.includes(activeKey)) {
+          setActiveKey(menus[0]);
+        }
+      } else {
+        setAllowedMenus([]);
+      }
+    } catch {
+      setAllowedMenus(menuItems.map((item) => item.key));
+    }
+  };
 
   useEffect(() => {
     const checkToken = async () => {
@@ -41,6 +59,7 @@ export default function App() {
       try {
         await client.get("/auth/validate");
         setAuthenticated(true);
+        await fetchAllowedMenus();
       } catch {
         setAuthToken(null);
       } finally {
@@ -54,6 +73,8 @@ export default function App() {
     setAuthToken(null);
     setAuthenticated(false);
     setUserInfo(null);
+    setAllowedMenus(menuItems.map((item) => item.key));
+    setActiveKey("users");
     message.success("已退出登录");
   };
 
@@ -67,10 +88,13 @@ export default function App() {
         onLogin={(payload) => {
           setAuthenticated(true);
           setUserInfo(payload);
+          fetchAllowedMenus();
         }}
       />
     );
   }
+
+  const visibleMenuItems = menuItems.filter((item) => allowedMenus.includes(item.key));
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -82,7 +106,7 @@ export default function App() {
           theme="dark"
           mode="inline"
           selectedKeys={[activeKey]}
-          items={menuItems}
+          items={visibleMenuItems}
           onClick={(event) => setActiveKey(event.key)}
         />
       </Sider>

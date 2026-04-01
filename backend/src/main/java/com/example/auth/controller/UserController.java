@@ -7,6 +7,7 @@ import com.example.auth.service.UserRoleService;
 import com.example.auth.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final UserService userService;
   private final UserRoleService userRoleService;
+  private final PasswordEncoder passwordEncoder;
 
-  public UserController(UserService userService, UserRoleService userRoleService) {
+  public UserController(UserService userService, UserRoleService userRoleService, PasswordEncoder passwordEncoder) {
     this.userService = userService;
     this.userRoleService = userRoleService;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @GetMapping
@@ -38,6 +41,7 @@ public class UserController {
 
   @PostMapping
   public User create(@Valid @RequestBody User user) {
+    user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
     userService.save(user);
     return user;
   }
@@ -45,6 +49,9 @@ public class UserController {
   @PostMapping("/{id}")
   public User update(@PathVariable Long id, @Valid @RequestBody User user) {
     user.setId(id);
+    if (user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
+      user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+    }
     userService.updateById(user);
     return user;
   }

@@ -12,5 +12,10 @@ mybatis-plus:
     db-config:
       id-type: auto
 
+security:
+  jwt:
+    secret: change-this-to-a-very-long-secret-key-for-jwt-signing-123456
+    expiration-seconds: 7200
+
 server:
   port: 8080

@@ -8,4 +8,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+  @Override
+  public User findByUsername(String username) {
+    return lambdaQuery().eq(User::getUsername, username).one();
+  }
 }

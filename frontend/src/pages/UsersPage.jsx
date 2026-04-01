@@ -66,8 +66,8 @@ export default function UsersPage() {
           <Form.Item label="邮箱" name="email">
             <Input placeholder="输入邮箱" />
           </Form.Item>
-          <Form.Item label="密码哈希" name="passwordHash" rules={[{ required: true }]}> 
-            <Input placeholder="输入密码哈希" />
+          <Form.Item label="密码" name="passwordHash" rules={[{ required: true }]}> 
+            <Input placeholder="输入密码" />
           </Form.Item>
           <Form.Item label="启用" name="enabled" valuePropName="checked">
             <Switch />

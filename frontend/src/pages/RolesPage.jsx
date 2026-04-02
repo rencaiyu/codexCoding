@@ -17,7 +17,10 @@ export default function RolesPage({ hasPermission }) {
   const [form] = Form.useForm();
 
   const fetchRoles = async () => setData((await client.get("/roles")).data ?? []);
-  const fetchPermissions = async () => setPermissions((await client.get("/permissions")).data ?? []);
+  const fetchPermissions = async () => {
+    const items = (await client.get("/permissions")).data ?? [];
+    setPermissions(items.filter((item) => item.permissionType === "BUTTON"));
+  };
   const fetchMenus = async () => setMenus((await client.get("/menus")).data ?? []);
 
   useEffect(() => { fetchRoles(); fetchPermissions(); fetchMenus(); }, []);

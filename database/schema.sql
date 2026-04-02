@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS sys_permission (
   menu_id BIGINT DEFAULT NULL,
   resource VARCHAR(128) NOT NULL,
   action VARCHAR(64) NOT NULL,
+  permission_type VARCHAR(16) NOT NULL DEFAULT 'BUTTON',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_permission_menu FOREIGN KEY (menu_id) REFERENCES sys_menu (id)
@@ -94,60 +95,76 @@ INSERT INTO sys_menu (parent_id, menu_key, name, path, sort_order)
 SELECT NULL, 'permissions', '按钮权限管理', '/permissions', 4
 WHERE NOT EXISTS (SELECT 1 FROM sys_menu WHERE menu_key = 'permissions');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'users:create', '新增用户', '用户新增按钮', m.id, 'users', 'create' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'users:menu', '用户菜单', '用户管理菜单访问', m.id, 'users', 'menu', 'MENU' FROM sys_menu m
+WHERE m.menu_key='users' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='users:menu');
+
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'roles:menu', '角色菜单', '角色管理菜单访问', m.id, 'roles', 'menu', 'MENU' FROM sys_menu m
+WHERE m.menu_key='roles' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='roles:menu');
+
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'menus:menu', '菜单管理菜单', '菜单管理访问', m.id, 'menus', 'menu', 'MENU' FROM sys_menu m
+WHERE m.menu_key='menus' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='menus:menu');
+
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'permissions:menu', '权限管理菜单', '权限管理访问', m.id, 'permissions', 'menu', 'MENU' FROM sys_menu m
+WHERE m.menu_key='permissions' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='permissions:menu');
+
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'users:create', '新增用户', '用户新增按钮', m.id, 'users', 'create', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='users' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='users:create');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'users:update', '编辑用户', '用户编辑按钮', m.id, 'users', 'update' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'users:update', '编辑用户', '用户编辑按钮', m.id, 'users', 'update', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='users' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='users:update');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'users:delete', '删除用户', '用户删除按钮', m.id, 'users', 'delete' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'users:delete', '删除用户', '用户删除按钮', m.id, 'users', 'delete', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='users' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='users:delete');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'users:assign', '分配用户角色', '分配角色按钮', m.id, 'users', 'assign' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'users:assign', '分配用户角色', '分配角色按钮', m.id, 'users', 'assign', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='users' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='users:assign');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'roles:create', '新增角色', '角色新增按钮', m.id, 'roles', 'create' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'roles:create', '新增角色', '角色新增按钮', m.id, 'roles', 'create', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='roles' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='roles:create');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'roles:update', '编辑角色', '角色编辑按钮', m.id, 'roles', 'update' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'roles:update', '编辑角色', '角色编辑按钮', m.id, 'roles', 'update', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='roles' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='roles:update');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'roles:delete', '删除角色', '角色删除按钮', m.id, 'roles', 'delete' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'roles:delete', '删除角色', '角色删除按钮', m.id, 'roles', 'delete', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='roles' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='roles:delete');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'roles:assign', '分配角色按钮权限', '角色权限分配按钮', m.id, 'roles', 'assign' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'roles:assign', '分配角色按钮权限', '角色权限分配按钮', m.id, 'roles', 'assign', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='roles' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='roles:assign');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'permissions:create', '新增按钮权限', '权限新增按钮', m.id, 'permissions', 'create' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'permissions:create', '新增按钮权限', '权限新增按钮', m.id, 'permissions', 'create', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='permissions' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='permissions:create');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'permissions:update', '编辑按钮权限', '权限编辑按钮', m.id, 'permissions', 'update' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'permissions:update', '编辑按钮权限', '权限编辑按钮', m.id, 'permissions', 'update', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='permissions' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='permissions:update');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'permissions:delete', '删除按钮权限', '权限删除按钮', m.id, 'permissions', 'delete' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'permissions:delete', '删除按钮权限', '权限删除按钮', m.id, 'permissions', 'delete', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='permissions' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='permissions:delete');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'menus:create', '新增菜单', '菜单新增按钮', m.id, 'menus', 'create' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'menus:create', '新增菜单', '菜单新增按钮', m.id, 'menus', 'create', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='menus' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='menus:create');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'menus:update', '编辑菜单', '菜单编辑按钮', m.id, 'menus', 'update' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'menus:update', '编辑菜单', '菜单编辑按钮', m.id, 'menus', 'update', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='menus' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='menus:update');
 
-INSERT INTO sys_permission (code, name, description, menu_id, resource, action)
-SELECT 'menus:delete', '删除菜单', '菜单删除按钮', m.id, 'menus', 'delete' FROM sys_menu m
+INSERT INTO sys_permission (code, name, description, menu_id, resource, action, permission_type)
+SELECT 'menus:delete', '删除菜单', '菜单删除按钮', m.id, 'menus', 'delete', 'BUTTON' FROM sys_menu m
 WHERE m.menu_key='menus' AND NOT EXISTS (SELECT 1 FROM sys_permission WHERE code='menus:delete');
 
 INSERT INTO sys_user (username, display_name, email, password_hash, enabled)

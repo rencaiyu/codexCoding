@@ -17,6 +17,7 @@ import com.example.auth.service.RolePermissionService;
 import com.example.auth.service.UserRoleService;
 import com.example.auth.service.UserService;
 import jakarta.validation.Valid;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+  private static final String MENU_PERMISSION_TYPE = "MENU";
+  private static final String BUTTON_PERMISSION_TYPE = "BUTTON";
 
   private final UserService userService;
   private final UserRoleService userRoleService;
@@ -90,7 +94,29 @@ public class AuthController {
     List<Long> roleIds = getCurrentRoleIds(currentUser.getId());
     if (roleIds.isEmpty()) return Map.of("menus", List.of());
 
-    Set<Long> menuIds = roleMenuService.lambdaQuery().in(RoleMenu::getRoleId, roleIds).list().stream().map(RoleMenu::getMenuId).collect(Collectors.toSet());
+    Set<Long> roleMenuIds = roleMenuService.lambdaQuery()
+        .in(RoleMenu::getRoleId, roleIds)
+        .list()
+        .stream()
+        .map(RoleMenu::getMenuId)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    Set<Long> permissionIds = getRolePermissionIds(roleIds);
+    Set<Long> menuIdsFromMenuPermissions = permissionIds.isEmpty()
+        ? Set.of()
+        : permissionService.lambdaQuery()
+            .in(Permission::getId, permissionIds)
+            .eq(Permission::getPermissionType, MENU_PERMISSION_TYPE)
+            .list()
+            .stream()
+            .map(Permission::getMenuId)
+            .filter(id -> id != null)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    Set<Long> menuIds = new LinkedHashSet<>();
+    menuIds.addAll(roleMenuIds);
+    menuIds.addAll(menuIdsFromMenuPermissions);
+
     if (menuIds.isEmpty()) return Map.of("menus", List.of());
 
     return Map.of("menus", menuService.lambdaQuery().in(Menu::getId, menuIds).list().stream().map(Menu::getMenuKey).toList());
@@ -98,7 +124,7 @@ public class AuthController {
 
   @GetMapping("/permissions")
   public Map<String, Set<String>> permissions() {
-    return Map.of("permissions", getCurrentUserPermissionKeys());
+    return Map.of("permissions", getCurrentUserButtonPermissionKeys());
   }
 
   private User getCurrentUser() {
@@ -114,19 +140,63 @@ public class AuthController {
     return userRoleService.lambdaQuery().eq(UserRole::getUserId, userId).list().stream().map(UserRole::getRoleId).toList();
   }
 
-  private Set<String> getCurrentUserPermissionKeys() {
+  private Set<Long> getRolePermissionIds(List<Long> roleIds) {
+    if (roleIds == null || roleIds.isEmpty()) return Set.of();
+    return rolePermissionService.lambdaQuery().in(RolePermission::getRoleId, roleIds).list().stream().map(RolePermission::getPermissionId).collect(Collectors.toSet());
+  }
+
+  private Set<String> getCurrentUserButtonPermissionKeys() {
     User currentUser = getCurrentUser();
 
     if ("admin".equalsIgnoreCase(currentUser.getUsername())) {
-      return permissionService.list().stream().map(permission -> permission.getResource() + ":" + permission.getAction()).collect(Collectors.toSet());
+      return permissionService.lambdaQuery()
+          .eq(Permission::getPermissionType, BUTTON_PERMISSION_TYPE)
+          .list()
+          .stream()
+          .map(permission -> permission.getResource() + ":" + permission.getAction())
+          .collect(Collectors.toSet());
     }
 
     List<Long> roleIds = getCurrentRoleIds(currentUser.getId());
     if (roleIds.isEmpty()) return Set.of();
 
-    Set<Long> permissionIds = rolePermissionService.lambdaQuery().in(RolePermission::getRoleId, roleIds).list().stream().map(RolePermission::getPermissionId).collect(Collectors.toSet());
+    Set<Long> permissionIds = getRolePermissionIds(roleIds);
     if (permissionIds.isEmpty()) return Set.of();
 
-    return permissionService.lambdaQuery().in(Permission::getId, permissionIds).list().stream().map(permission -> permission.getResource() + ":" + permission.getAction()).collect(Collectors.toSet());
+    Set<Long> visibleMenuIds = getVisibleMenuIds(roleIds, permissionIds);
+
+    return permissionService.lambdaQuery()
+        .in(Permission::getId, permissionIds)
+        .eq(Permission::getPermissionType, BUTTON_PERMISSION_TYPE)
+        .list()
+        .stream()
+        .filter(permission -> permission.getMenuId() == null || visibleMenuIds.contains(permission.getMenuId()))
+        .map(permission -> permission.getResource() + ":" + permission.getAction())
+        .collect(Collectors.toSet());
+  }
+
+  private Set<Long> getVisibleMenuIds(List<Long> roleIds, Set<Long> permissionIds) {
+    Set<Long> roleMenuIds = roleMenuService.lambdaQuery()
+        .in(RoleMenu::getRoleId, roleIds)
+        .list()
+        .stream()
+        .map(RoleMenu::getMenuId)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    Set<Long> menuIdsFromMenuPermissions = permissionIds.isEmpty()
+        ? Set.of()
+        : permissionService.lambdaQuery()
+            .in(Permission::getId, permissionIds)
+            .eq(Permission::getPermissionType, MENU_PERMISSION_TYPE)
+            .list()
+            .stream()
+            .map(Permission::getMenuId)
+            .filter(id -> id != null)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    Set<Long> visibleMenuIds = new LinkedHashSet<>();
+    visibleMenuIds.addAll(roleMenuIds);
+    visibleMenuIds.addAll(menuIdsFromMenuPermissions);
+    return visibleMenuIds;
   }
 }

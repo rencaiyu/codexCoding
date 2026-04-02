@@ -14,6 +14,7 @@ public class Permission {
   private Long menuId;
   private String resource;
   private String action;
+  private String permissionType;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
 }
